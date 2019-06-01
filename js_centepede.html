@@ -1,0 +1,235 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>JS Centepede Game</title>
+    <link href="https://fonts.googleapis.com/css?family=Antic+Slab" rel="stylesheet">
+
+  </head>
+
+  <body>
+
+    <div id="score">0</div>
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
+
+    <style>
+      #gameCanvas {
+        border: 5px solid;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      #score {
+        text-align: center;
+        font-size: 110px;
+        font-family: 'Antic Slab', serif;
+      }
+    </style>
+  </body>
+
+  <script>
+    const GAME_SPEED = 125;
+    const CANVAS_BORDER_COLOR = 'black';
+    const CANVAS_BACKGROUND_COLOR = "profile.jpg";
+    const centepede_COLOR = 'darkred';
+    const centepede_BORDER_COLOR = 'darkgreen';
+    const FOOD_COLOR = 'green';
+    const FOOD_BORDER_COLOR = 'darkgreen';
+    let centepede = [
+      {x: 150, y: 150},
+      {x: 140, y: 150},
+      {x: 130, y: 150},
+      {x: 120, y: 150},
+      {x: 110, y: 150}
+    ]
+    // The user's score
+    let score = 0;
+    // When set to true the centepede is changing direction
+    let changingDirection = false;
+    // Food x-coordinate
+    let foodX;
+    // Food y-coordinate
+    let foodY;
+    // Horizontal velocity
+    let dx = 10;
+    // Vertical velocity
+    let dy = 0;
+    // Get the canvas element
+    const gameCanvas = document.getElementById("gameCanvas");
+    // Return a two dimensional drawing context
+    const ctx = gameCanvas.getContext("2d");
+    // Start game
+    main();
+    // Create the first food location
+    createFood();
+    // Call changeDirection whenever a key is pressed
+    document.addEventListener("keydown", changeDirection);
+    /**
+     * Main function of the game
+     * called repeatedly to advance the game
+     */
+    function main() {
+      // If the game ended return early to stop game
+      if (didGameEnd()) return;
+      setTimeout(function onTick() {
+        changingDirection = false;
+        clearCanvas();
+        drawFood();
+        advancecentepede();
+        drawcentepede();
+        // Call game again
+        main();
+      }, GAME_SPEED)
+    }
+    /**
+     * Change the background COLOR of the canvas to CANVAS_BACKGROUND_COLOR and
+     * draw a border around it
+     */
+    function clearCanvas() {
+      //  Select the COLOR to fill the drawing
+      ctx.fillStyle = CANVAS_BACKGROUND_COLOR;
+      //  Select the COLOR for the border of the canvas
+      ctx.strokestyle = CANVAS_BORDER_COLOR;
+      // Draw a "filled" rectangle to cover the entire canvas
+      ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+      // Draw a "border" around the entire canvas
+      ctx.strokeRect(0, 0, gameCanvas.width, gameCanvas.height);
+    }
+    /**
+     * Draw the food on the canvas
+     */
+    function drawFood() {
+      ctx.fillStyle = FOOD_COLOR;
+      ctx.strokestyle = FOOD_BORDER_COLOR;
+      ctx.fillRect(foodX, foodY, 10, 10);
+      ctx.strokeRect(foodX, foodY, 10, 10);
+    }
+    /**
+     * Advances the centepede by changing the x-coordinates of its parts
+     * according to the horizontal velocity and the y-coordinates of its parts
+     * according to the vertical veolocity
+     */
+    function advancecentepede() {
+      // Create the new centepede's head
+      const head = {x: centepede[0].x + dx, y: centepede[0].y + dy};
+      // Add the new head to the beginning of centepede body
+      centepede.unshift(head);
+      const didEatFood = centepede[0].x === foodX && centepede[0].y === foodY;
+      if (didEatFood) {
+        // Increase score
+        score += 10;
+        // Display score on screen
+        document.getElementById('score').innerHTML = score;
+        // Generate new food location
+        createFood();
+      } else {
+        // Remove the last part of centepede body
+        centepede.pop();
+      }
+    }
+    /**
+     * Returns true if the head of the centepede touched another part of the game
+     * or any of the walls
+     */
+    function didGameEnd() {
+      for (let i = 4; i < centepede.length; i++) {
+        if (centepede[i].x === centepede[0].x && centepede[i].y === centepede[0].y) return true
+      }
+      const hitLeftWall = centepede[0].x < 0;
+      const hitRightWall = centepede[0].x > gameCanvas.width - 10;
+      const hitToptWall = centepede[0].y < 0;
+      const hitBottomWall = centepede[0].y > gameCanvas.height - 10;
+      return hitLeftWall || hitRightWall || hitToptWall || hitBottomWall
+    }
+    /**
+     * Generates a random number that is a multiple of 10 given a minumum
+     * and a maximum number
+     * @param { number } min - The minimum number the random number can be
+     * @param { number } max - The maximum number the random number can be
+     */
+    function randomTen(min, max) {
+      return Math.round((Math.random() * (max-min) + min) / 10) * 10;
+    }
+    /**
+     * Creates random set of coordinates for the centepede food.
+     */
+    function createFood() {
+      // Generate a random number the food x-coordinate
+      foodX = randomTen(0, gameCanvas.width - 10);
+      // Generate a random number for the food y-coordinate
+      foodY = randomTen(0, gameCanvas.height - 10);
+      // if the new food location is where the centepede currently is, generate a new food location
+      centepede.forEach(function isFoodOncentepede(part) {
+        const foodIsoNcentepede = part.x == foodX && part.y == foodY;
+        if (foodIsoNcentepede) createFood();
+      });
+    }
+    /**
+     * Draws the centepede on the canvas
+     */
+    function drawcentepede() {
+      // loop through the centepede parts drawing each part on the canvas
+      centepede.forEach(drawcentepedePart)
+    }
+    /**
+     * Draws a part of the centepede on the canvas
+     * @param { object } centepedePart - The coordinates where the part should be drawn
+     */
+    function drawcentepedePart(centepedePart) {
+      // Set the COLOR of the centepede part
+      ctx.fillStyle = centepede_COLOR;
+      // Set the border COLOR of the centepede part
+      ctx.strokestyle = centepede_BORDER_COLOR;
+      // Draw a "filled" rectangle to represent the centepede part at the coordinates
+      // the part is located
+      ctx.fillRect(centepedePart.x, centepedePart.y, 10, 10);
+      // Draw a border around the centepede part
+      ctx.strokeRect(centepedePart.x, centepedePart.y, 10, 10);
+    }
+    /**
+     * Changes the vertical and horizontal velocity of the centepede according to the
+     * key that was pressed.
+     * The direction cannot be switched to the opposite direction, to prevent the centepede
+     * from reversing
+     * For example if the the direction is 'right' it cannot become 'left'
+     * @param { object } event - The keydown event
+     */
+    function changeDirection(event) {
+      const LEFT_KEY = 37;
+      const RIGHT_KEY = 39;
+      const UP_KEY = 38;
+      const DOWN_KEY = 40;
+      /**
+       * This function prevents the centepede from 
+       */
+      if (changingDirection) return;
+      changingDirection = true;
+      
+      const keyPressed = event.keyCode;
+      const goingUp = dy === -10;
+      const goingDown = dy === 10;
+      const goingRight = dx === 10;
+      const goingLeft = dx === -10;
+      if (keyPressed === LEFT_KEY && !goingRight) {
+        dx = -10;
+        dy = 0;
+      }
+      
+      if (keyPressed === UP_KEY && !goingDown) {
+        dx = 0;
+        dy = -10;
+      }
+      
+      if (keyPressed === RIGHT_KEY && !goingLeft) {
+        dx = 10;
+        dy = 0;
+      }
+      
+      if (keyPressed === DOWN_KEY && !goingUp) {
+        dx = 0;
+        dy = 10;
+      }
+    }
+  </script>
+</html>
